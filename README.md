@@ -8,7 +8,7 @@ I know, it's bad.
 Installation
 ------------
 ```
-pip install -e git+https://github.com/betaworks/boosh.git#egg=boosh
+pip install git+ssh://git@github.com/betaworks/boosh.git#egg=boosh
 ```
 
 benv
