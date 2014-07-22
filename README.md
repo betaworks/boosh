@@ -15,20 +15,30 @@ benv
 ====
 benv (improved name TBD) will load up AWS credentials stored in the `~/.aws/config` file
 
+Setup
+-----
+ 1. Ensure you have AWSCLI configured happily in `~/.aws/config`.  Verify with `aws --profile=<profile_name> ec2 describe-instances`.
+ 2. Add the following to your `.bash_profile`:
+```
+# Load up the benv shell function
+. /usr/local/bin/benv.sh
+```
+ 3. Profit!
+
 Usage
 -----
 
-### Load AWS credentialks into the environment
+#### Load AWS credentials into the environment
 ```
 $ benv betahack
 ```
 
-### Remove AWS credentials from the environment
+#### Remove AWS credentials from the environment
 ```
 $ benv clear
 ```
 
-### Run one command with AWS credentials in the environment
+#### Run one command with AWS credentials in the environment
 ```
 $ benv betahack packer build
 ```
