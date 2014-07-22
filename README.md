@@ -17,7 +17,18 @@ benv (improved name TBD) will load up AWS credentials stored in the `~/.aws/conf
 
 Setup
 -----
- 1. Ensure you have AWSCLI configured happily in `~/.aws/config`.  Verify with `aws --profile=<profile_name> ec2 describe-instances`.
+ 1. Ensure you have AWSCLI configured happily in `~/.aws/config`.  Verify with `aws --profile=<profile_name> ec2 describe-instances`:
+
+    ```ini
+    [default]
+    
+    [profile betahack]
+    region = us-east-1
+    aws_access_key_id = AKIAGARBLEGARBLE
+    aws_secret_access_key = nKNRrTRFrcJOuh5KUtJHFaHEZNGgym0h
+    
+    [profile ...]
+    ```
  2. Add the following to your `.bash_profile`:
 
     ```
