@@ -19,10 +19,12 @@ Setup
 -----
  1. Ensure you have AWSCLI configured happily in `~/.aws/config`.  Verify with `aws --profile=<profile_name> ec2 describe-instances`.
  2. Add the following to your `.bash_profile`:
-```
-# Load up the benv shell function
-. /usr/local/bin/benv.sh
-```
+
+    ```
+    # Load up the benv shell function
+    . /usr/local/bin/benv.sh
+    ```
+
  3. Profit!
 
 Usage
