@@ -3,17 +3,18 @@ from setuptools import setup, find_packages
 
 setup(
     name='boosh',
-    version='0.0.1',
+    version='0.0.2',
     packages=find_packages(),
 
     install_requires=[
         'click',
-        'botocore==0.57.0',
+        'botocore',
     ],
 
     entry_points={
         'console_scripts': [
             'benv_creds = boosh.benv:main',
+            'boosh_proxy = boosh.ssh:main',
         ],
     },
     scripts=[
