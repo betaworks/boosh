@@ -1,11 +1,13 @@
+import ConfigParser
 import botocore.session
 import click
 import json
 import os
-import sys
 import subprocess
+import sys
 
 CACHE_FILE = '~/.cache/boosh/hosts'
+BOOSH_CONFIG = '~/.aws/boosh'
 
 
 class Instance(object):
@@ -67,6 +69,80 @@ class Instance(object):
             return True
 
 
+class Gateway(object):
+    def __init__(self, name, hostname, port=22, user=None, use_netcat=False,
+                 netcat_path='/usr/bin/nc', identity_file=None,
+                 ssh_options=None):
+
+        self.name = name
+        self.hostname = hostname
+        self.port = port
+        self.user = user
+        self.use_netcat = use_netcat
+        self.netcat_path = netcat_path
+        self.identity_file = identity_file
+        self.ssh_options = ssh_options
+
+    @classmethod
+    def from_config_section(cls, name, parser):
+        section = 'gateway ' + name
+        keys = (
+            'port',
+            'user',
+            'netcat_path',
+            'identity_file',
+            'ssh_options',
+        )
+        kwargs = {k: v for (k, v) in parser.items(section) if k in keys}
+
+        if 'use_netcat' in parser.items(section):
+            kwargs['use_netcat'] = parser.getboolean(section, 'use_netcat')
+
+        kwargs['name'] = name
+        kwargs['hostname'] = parser.get(section, 'hostname')
+
+        return cls(**kwargs)
+
+    def as_ssh_command(self, instance):
+        ssh_options, ssh_command = [], []
+
+        # Set extra options first
+        if self.ssh_options:
+            ssh_options.extend(self.ssh_options.split(' '))
+
+        ssh_options.append("-p%d" % self.port)
+
+        if self.user:
+            ssh_options.extend(('-l', self.user))
+
+        if self.identity_file:
+            identity_file_path = os.path.expanduser(self.identity_file)
+            ssh_options.extend(('-i', identity_file_path,
+                                '-oIdentitiesOnly=yes'))
+
+        if self.use_netcat:
+            ssh_options.extend(('-NT', '-oExitOnForwardFailure',
+                                '-oClearAllForwardings'))
+        else:
+            ssh_options.extend(('-W', '%s:%d' % (instance.private_ip_address,
+                                                 22)))
+
+        if self.use_netcat:
+            ssh_command = (self.netcat_path, instance.private_ip_address,
+                           '22')
+
+        ssh_args = ssh_options + [self.hostname] + ssh_command
+
+        print >> sys.stderr, ssh_args
+        p = subprocess.Popen(['/usr/bin/ssh'] + ssh_args, stdin=sys.stdin,
+                             stderr=sys.stderr)
+
+        return p
+
+    def __repr__(self):
+        return "Gateway('%s', ...)" % self.name
+
+
 def find_instance(instance_id, region):
     profiles_session = botocore.session.get_session()
 
@@ -121,6 +197,81 @@ def cache_lookup(hostname, file_path):
     return None
 
 
+def check_group_match(instance, group, config):
+    section = 'group ' + group
+    # Check profile
+    try:
+        group_profile = config.get(section, 'profile')
+        if group_profile != instance.profile_name:
+            return False
+    except ConfigParser.NoOptionError:
+        pass
+
+    # Check region
+    try:
+        group_region = config.get(section, 'region')
+        if group_region != instance.region:
+            return False
+    except ConfigParser.NoOptionError:
+        pass
+
+    # Check if EC2 "Classic" mode
+    try:
+        group_classic = config.getboolean(section, 'ec2_classic')
+        if group_classic != instance.is_classic:
+            return False
+    except ConfigParser.NoOptionError:
+        pass
+
+    # Check VPC
+    try:
+        group_vpc_id = config.get(section, 'vpc_id')
+        if group_vpc_id != instance.vpc_id:
+            return False
+    except ConfigParser.NoOptionError:
+        pass
+
+    # Check VPC Subnet
+    try:
+        group_subnet_id = config.get(section, 'subnet_id', None)
+        if group_subnet_id != instance.subnet_id:
+            return False
+    except ConfigParser.NoOptionError:
+        pass
+
+    return True
+
+
+def find_gateway(instance):
+    """Find an appropriate gateway."""
+
+    config = ConfigParser.SafeConfigParser()
+    config.read(os.path.expanduser(BOOSH_CONFIG))
+
+    group_names, gateway_names = [], []
+    for section in config.sections():
+        kind, name = section.split(' ', 1)
+        if kind == 'group':
+            group_names.append(name)
+        elif kind == 'gateway':
+            gateway_names.append(name)
+        else:
+            continue
+
+    for name in group_names:
+        result = check_group_match(instance, name, config)
+        if result:
+            break
+    else:
+        if instance.profile_name in gateway_names:
+            return Gateway.from_config_section(instance.profile_name, config)
+
+        return None
+
+    gateway_name = config.get('group ' + name, 'gateway')
+    return Gateway.from_config_section(gateway_name, config)
+
+
 def cache_append(line, file_path):
     cache_file_path = os.path.abspath(os.path.expanduser(file_path))
 
@@ -159,13 +310,19 @@ def main(hostname, port, region):
     if cache_miss:
         cache_append(instance.as_cache_line(), cache_file)
 
-    if instance.public_ip_address:
-        p = subprocess.Popen(
+    gateway = find_gateway(instance)
+    if gateway:
+        # Connect through gateway
+        ssh_proc = gateway.as_ssh_command(instance)
+        ssh_proc.communicate()
+    elif instance.public_ip_address:
+        # Connect "directly" via netcat
+        ssh_proc = subprocess.Popen(
             ('/usr/bin/nc', instance.public_ip_address, port),
             stdin=sys.stdin,
             stdout=sys.stdout,
         )
-        p.communicate()
+        ssh_proc.communicate()
     else:
         print >> sys.stderr, "No public IP available."
         sys.exit(1)
