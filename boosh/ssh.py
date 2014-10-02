@@ -133,7 +133,6 @@ class Gateway(object):
 
         ssh_args = ssh_options + [self.hostname] + ssh_command
 
-        print >> sys.stderr, ssh_args
         p = subprocess.Popen(['/usr/bin/ssh'] + ssh_args, stdin=sys.stdin,
                              stderr=sys.stderr)
 
