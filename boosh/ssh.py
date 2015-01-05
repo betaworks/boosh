@@ -28,14 +28,13 @@ class Instance(object):
         """Return an Instance given a raw EC2 DescribeInstances dictionary."""
         kwargs = {
             'id': data['InstanceId'],
-            'public_ip_address': data['PublicIpAddress'],
-            'private_ip_address': data['PrivateIpAddress'],
             'profile_name': profile_name,
             'region': region,
+            'private_ip_address': data['PrivateIpAddress'],
+            'public_ip_address': data.get('PublicIpAddress', None),
+            'subnet_id': data.get('SubnetId', None),
+            'vpc_id': data.get('VpcId', None),
         }
-        if 'VpcId' in data:
-            kwargs['subnet_id'] = data['SubnetId']
-            kwargs['vpc_id'] = data['VpcId']
 
         return cls(**kwargs)
 
