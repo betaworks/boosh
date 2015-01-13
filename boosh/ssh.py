@@ -1,10 +1,11 @@
 import ConfigParser
-import botocore.session
-import click
 import json
 import os
 import subprocess
 import sys
+
+import botocore.session
+import click
 
 CACHE_FILE = '~/.cache/boosh/hosts'
 BOOSH_CONFIG = '~/.aws/boosh'
