@@ -303,7 +303,7 @@ def main(hostname, port, region):
     if result:
         instance = result
     else:
-        print >> sys.stderr, "No instance found."
+        print >> sys.stderr, "boosh: No instance found."
         sys.exit(1)
 
     if cache_miss:
@@ -323,7 +323,8 @@ def main(hostname, port, region):
         )
         ssh_proc.communicate()
     else:
-        print >> sys.stderr, "No public IP available."
+        print >> sys.stderr, ("boosh: Neither a public IP nor a gateway was "
+                              "available for this host. Exiting.")
         sys.exit(1)
 
 if __name__ == '__main__':
