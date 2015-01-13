@@ -5,22 +5,15 @@ setup(
     name='boosh',
     version='0.0.2',
     packages=find_packages(),
-
     install_requires=[
         'click',
         'botocore',
     ],
-
     entry_points={
         'console_scripts': [
-            'benv_creds = boosh.benv:main',
             'boosh_proxy = boosh.ssh:main',
         ],
     },
-    scripts=[
-        'benv.sh',
-    ],
-
     author="Paul Handly",
     author_email="ph@betaworks.com",
 )
