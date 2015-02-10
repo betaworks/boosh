@@ -326,6 +326,3 @@ def main(hostname, port, region):
         print >> sys.stderr, ("boosh: Neither a public IP nor a gateway was "
                               "available for this host. Exiting.")
         sys.exit(1)
-
-if __name__ == '__main__':
-    main()
