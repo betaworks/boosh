@@ -142,7 +142,7 @@ class Gateway(object):
         return "Gateway('%s', ...)" % self.name
 
 
-def find_instance(instance_id, region):
+def find_instance(instance_id, region, config):
     profiles_session = botocore.session.get_session()
 
     for profile in profiles_session.available_profiles:
@@ -241,11 +241,8 @@ def check_group_match(instance, group, config):
     return True
 
 
-def find_gateway(instance):
+def find_gateway(instance, config):
     """Find an appropriate gateway."""
-
-    config = ConfigParser.SafeConfigParser()
-    config.read(os.path.expanduser(BOOSH_CONFIG))
 
     group_names, gateway_names = [], []
     for section in config.sections():
@@ -296,9 +293,12 @@ def main(hostname, port, region):
     cache_miss = False
     result = cache_lookup(hostname, cache_file)
 
+    config = ConfigParser.SafeConfigParser()
+    config.read(os.path.expanduser(BOOSH_CONFIG))
+
     if not result:
         cache_miss = True
-        result = find_instance(hostname, region)
+        result = find_instance(hostname, region, config)
 
     if result:
         instance = result
@@ -309,7 +309,7 @@ def main(hostname, port, region):
     if cache_miss:
         cache_append(instance.as_cache_line(), cache_file)
 
-    gateway = find_gateway(instance)
+    gateway = find_gateway(instance, config)
     if gateway:
         # Connect through gateway
         ssh_proc = gateway.as_ssh_command(instance)
