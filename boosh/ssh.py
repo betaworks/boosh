@@ -1,5 +1,6 @@
 import ConfigParser
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -9,6 +10,139 @@ import click
 
 CACHE_FILE = '~/.cache/boosh/hosts'
 BOOSH_CONFIG = '~/.aws/boosh'
+
+logger = logging.getLogger('boosh.ssh')
+logger.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+formatter = logging.Formatter('[%(levelname)s] %(name)s: %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+
+
+class ConfigBase(object):
+    defaults = {}
+    bool_keys = ()
+    multistring_keys = ()
+    string_keys = ()
+
+    def __init__(self, name, section, parser):
+        self.name = name
+
+        for key in self.string_keys:
+            self.__dict__[key] = parser.get(section, key, vars=self.defaults)
+
+        for key in self.bool_keys:
+            try:
+                self.__dict__[key] = parser.getboolean(section, key)
+            except ConfigParser.NoOptionError:
+                self.__dict__[key] = self.defaults[key]
+
+        for key in self.multistring_keys:
+            raw_value = parser.get(section, key, vars=self.defaults)
+            self.__dict__[key] = [i.strip() for i in raw_value.split(',')]
+
+
+class ConfigGroup(ConfigBase):
+    defaults = {
+        'ec2_classic': True,
+        'profile': None,
+        'region': None,
+        'subnet_id': None,
+        'vpc_id': None,
+    }
+    bool_keys = (
+        'ec2_classic',
+    )
+    string_keys = (
+        'profile'
+        'region',
+        'subnet_id',
+        'vpc_id',
+    )
+
+
+class ConfigProfile(ConfigBase):
+    multistring_keys = (
+        'regions',
+    )
+
+
+class ConfigGateway(ConfigBase):
+    defaults = {
+        'port': '22',
+        'user': None,
+        'use_netcat': False,
+        'netcat_path': '/usr/bin/nc',
+        'identity_file': None,
+        'ssh_options': None,
+    }
+    bool_keys = (
+        'use_netcat',
+    )
+    string_keys = (
+        'port',
+        'hostname',
+        'user',
+        'netcat_path',
+        'identity_file',
+        'ssh_options',
+    )
+
+    def as_ssh_command(self, instance):
+        ssh_options, ssh_command = [], []
+
+        # Set extra options first
+        if self.ssh_options:
+            ssh_options.extend(self.ssh_options.split(' '))
+
+        ssh_options.append("-p%s" % self.port)
+
+        if self.user:
+            ssh_options.extend(('-l', self.user))
+
+        if self.identity_file:
+            identity_file_path = os.path.expanduser(self.identity_file)
+            ssh_options.extend(('-i', identity_file_path,
+                                '-oIdentitiesOnly=yes'))
+
+        if self.use_netcat:
+            ssh_options.extend(('-NT', '-oExitOnForwardFailure',
+                                '-oClearAllForwardings'))
+        else:
+            ssh_options.extend(('-W', '%s:%d' % (instance.private_ip_address,
+                                                 22)))
+
+        if self.use_netcat:
+            ssh_command = (self.netcat_path, instance.private_ip_address,
+                           '22')
+
+        ssh_args = ssh_options + [self.hostname] + ssh_command
+
+        p = subprocess.Popen(['/usr/bin/ssh'] + ssh_args, stdin=sys.stdin,
+                             stderr=sys.stderr)
+
+        return p
+
+
+class BooshConfig(object):
+    config_class_map = {
+        'gateway': ConfigGateway,
+        'profile': ConfigProfile,
+        'group': ConfigGroup,
+    }
+
+    def __init__(self, config_file):
+        self._parser = ConfigParser.SafeConfigParser()
+        self._parser.readfp(config_file)
+
+        self.gateways, self.profiles, self.groups = {}, {}, {}
+        for section in self._parser.sections():
+            kind, name = section.split(' ')
+
+            if kind in self.config_class_map:
+                config_dict = getattr(self, kind + 's')
+                config_class = self.config_class_map[kind]
+                config_dict[name] = config_class(name, section, self._parser)
 
 
 class Instance(object):
@@ -27,17 +161,16 @@ class Instance(object):
     @classmethod
     def from_instance_data(cls, data, profile_name, region):
         """Return an Instance given a raw EC2 DescribeInstances dictionary."""
-        kwargs = {
-            'id': data['InstanceId'],
-            'profile_name': profile_name,
-            'region': region,
-            'private_ip_address': data['PrivateIpAddress'],
-            'public_ip_address': data.get('PublicIpAddress', None),
-            'subnet_id': data.get('SubnetId', None),
-            'vpc_id': data.get('VpcId', None),
-        }
 
-        return cls(**kwargs)
+        return cls(
+            id=data.get('InstanceId'),
+            profile_name=profile_name,
+            region=region,
+            private_ip_address=data.get('PrivateIpAddress'),
+            public_ip_address=data.get('PublicIpAddress', None),
+            subnet_id=data.get('SubnetId', None),
+            vpc_id=data.get('VpcId', None),
+        )
 
     @classmethod
     def from_cache_line(cls, line):
@@ -69,80 +202,9 @@ class Instance(object):
             return True
 
 
-class Gateway(object):
-    def __init__(self, name, hostname, port=22, user=None, use_netcat=False,
-                 netcat_path='/usr/bin/nc', identity_file=None,
-                 ssh_options=None):
+def find_instance(instance_id, config_profiles):
+    """Search through all AWS profiles and regions for an instance."""
 
-        self.name = name
-        self.hostname = hostname
-        self.port = port
-        self.user = user
-        self.use_netcat = use_netcat
-        self.netcat_path = netcat_path
-        self.identity_file = identity_file
-        self.ssh_options = ssh_options
-
-    @classmethod
-    def from_config_section(cls, name, parser):
-        section = 'gateway ' + name
-        keys = (
-            'port',
-            'user',
-            'netcat_path',
-            'identity_file',
-            'ssh_options',
-        )
-        kwargs = {k: v for (k, v) in parser.items(section) if k in keys}
-
-        if 'use_netcat' in parser.items(section):
-            kwargs['use_netcat'] = parser.getboolean(section, 'use_netcat')
-
-        kwargs['name'] = name
-        kwargs['hostname'] = parser.get(section, 'hostname')
-
-        return cls(**kwargs)
-
-    def as_ssh_command(self, instance):
-        ssh_options, ssh_command = [], []
-
-        # Set extra options first
-        if self.ssh_options:
-            ssh_options.extend(self.ssh_options.split(' '))
-
-        ssh_options.append("-p%d" % self.port)
-
-        if self.user:
-            ssh_options.extend(('-l', self.user))
-
-        if self.identity_file:
-            identity_file_path = os.path.expanduser(self.identity_file)
-            ssh_options.extend(('-i', identity_file_path,
-                                '-oIdentitiesOnly=yes'))
-
-        if self.use_netcat:
-            ssh_options.extend(('-NT', '-oExitOnForwardFailure',
-                                '-oClearAllForwardings'))
-        else:
-            ssh_options.extend(('-W', '%s:%d' % (instance.private_ip_address,
-                                                 22)))
-
-        if self.use_netcat:
-            ssh_command = (self.netcat_path, instance.private_ip_address,
-                           '22')
-
-        ssh_args = ssh_options + [self.hostname] + ssh_command
-
-        p = subprocess.Popen(['/usr/bin/ssh'] + ssh_args, stdin=sys.stdin,
-                             stderr=sys.stderr)
-
-        return p
-
-    def __repr__(self):
-        return "Gateway('%s', ...)" % self.name
-
-
-def find_instance(instance_id, region, config):
     profiles_session = botocore.session.get_session()
 
     for profile in profiles_session.available_profiles:
@@ -152,29 +214,40 @@ def find_instance(instance_id, region, config):
         # Re-using the same session doesn't work
         session = botocore.session.get_session()
         session.profile = profile
-        if region:
-            profile_region = region
-        else:
-            profile_region = session.get_config_variable('region')
 
-        if not profile_region:
-            continue
+        # Prefer regions listed in the profile
+        regions = None
+        if profile in config_profiles:
+            regions = config_profiles[profile].regions
+
+        if not regions:
+            region = session.get_config_variable('region')
+            if not region:
+                continue
+            else:
+                regions = [region]
 
         ec2 = session.get_service('ec2')
         operation = ec2.get_operation('DescribeInstances')
-        endpoint = ec2.get_endpoint(profile_region)
-        resp, data = operation.call(
-            endpoint,
-            instance_ids=[instance_id],
-        )
+        for region in regions:
+            logger.debug("connecting to region '%s' with AWS profile '%s'...",
+                         region, profile)
+            endpoint = ec2.get_endpoint(region)
+            try:
+                resp, data = operation.call(
+                    endpoint,
+                    instance_ids=[instance_id],
+                )
+            except botocore.exceptions.NoCredentialsError:
+                break
 
-        if resp.status_code == 200:
-            for reservation in data['Reservations']:
-                for instance_data in reservation['Instances']:
-                    return Instance.from_instance_data(instance_data, profile,
-                                                       profile_region)
-        else:
-            continue
+            if resp.status_code == 200:
+                for reservation in data['Reservations']:
+                    for instance_data in reservation['Instances']:
+                        return Instance.from_instance_data(instance_data,
+                                                           profile, region)
+            else:
+                continue
 
     return None
 
@@ -196,76 +269,41 @@ def cache_lookup(hostname, file_path):
     return None
 
 
-def check_group_match(instance, group, config):
-    section = 'group ' + group
-    # Check profile
-    try:
-        group_profile = config.get(section, 'profile')
-        if group_profile != instance.profile_name:
-            return False
-    except ConfigParser.NoOptionError:
-        pass
+def find_group_match(instance, groups):
+    """Find a group match for the instance."""
 
-    # Check region
-    try:
-        group_region = config.get(section, 'region')
-        if group_region != instance.region:
-            return False
-    except ConfigParser.NoOptionError:
-        pass
+    fields_map = {
+        'profile': instance.profile_name,
+        'region': instance.region,
+        'ec2_classic': instance.is_classic,
+        'vpc_id': instance.vpc_id,
+        'subnet_id': instance.subnet_id,
+    }
 
-    # Check if EC2 "Classic" mode
-    try:
-        group_classic = config.getboolean(section, 'ec2_classic')
-        if group_classic != instance.is_classic:
-            return False
-    except ConfigParser.NoOptionError:
-        pass
+    for group in groups:
+        for field, instance_prop in fields_map.iteritems():
+            if field in group:
+                if group[field] != instance_prop:
+                    break
 
-    # Check VPC
-    try:
-        group_vpc_id = config.get(section, 'vpc_id')
-        if group_vpc_id != instance.vpc_id:
-            return False
-    except ConfigParser.NoOptionError:
-        pass
+        else:
+            return group
 
-    # Check VPC Subnet
-    try:
-        group_subnet_id = config.get(section, 'subnet_id', None)
-        if group_subnet_id != instance.subnet_id:
-            return False
-    except ConfigParser.NoOptionError:
-        pass
-
-    return True
+    return False
 
 
 def find_gateway(instance, config):
     """Find an appropriate gateway."""
 
-    group_names, gateway_names = [], []
-    for section in config.sections():
-        kind, name = section.split(' ', 1)
-        if kind == 'group':
-            group_names.append(name)
-        elif kind == 'gateway':
-            gateway_names.append(name)
-        else:
-            continue
+    group_name = find_group_match(instance, config.groups)
+    if group_name:
+        gateway_name = config.groups[group_name].gateway
+        return config.gateways[gateway_name]
 
-    for name in group_names:
-        result = check_group_match(instance, name, config)
-        if result:
-            break
-    else:
-        if instance.profile_name in gateway_names:
-            return Gateway.from_config_section(instance.profile_name, config)
+    if instance.profile_name in config.gateways:
+        return config.gateways[instance.profile_name]
 
-        return None
-
-    gateway_name = config.get('group ' + name, 'gateway')
-    return Gateway.from_config_section(gateway_name, config)
+    return None
 
 
 def cache_append(line, file_path):
@@ -286,19 +324,18 @@ def cache_append(line, file_path):
 @click.command()
 @click.argument('hostname')
 @click.argument('port', default="22", required=False)
-@click.option('--region', required=False)
-def main(hostname, port, region):
+def main(hostname, port):
     cache_file = os.environ.get('BOOSH_HOSTS_FILE', CACHE_FILE)
 
-    cache_miss = False
+    with open(os.path.expanduser(BOOSH_CONFIG), 'r') as config_file:
+        config = BooshConfig(config_file)
+
     result = cache_lookup(hostname, cache_file)
 
-    config = ConfigParser.SafeConfigParser()
-    config.read(os.path.expanduser(BOOSH_CONFIG))
-
+    cache_miss = False
     if not result:
         cache_miss = True
-        result = find_instance(hostname, region, config)
+        result = find_instance(hostname, config.profiles)
 
     if result:
         instance = result
