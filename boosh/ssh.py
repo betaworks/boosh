@@ -6,7 +6,6 @@ import subprocess
 import sys
 
 import botocore.session
-import click
 
 CACHE_FILE = '~/.cache/boosh/hosts'
 BOOSH_CONFIG = '~/.aws/boosh'
@@ -321,10 +320,13 @@ def cache_append(line, file_path):
         _open_and_write()
 
 
-@click.command()
-@click.argument('hostname')
-@click.argument('port', default="22", required=False)
-def main(hostname, port):
+def main():
+    hostname = sys.argv[1]
+    if len(sys.argv) > 2:
+        port = sys.argv[2]
+    else:
+        port = '22'
+
     cache_file = os.environ.get('BOOSH_HOSTS_FILE', CACHE_FILE)
 
     with open(os.path.expanduser(BOOSH_CONFIG), 'r') as config_file:
