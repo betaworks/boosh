@@ -332,21 +332,19 @@ def main():
     with open(os.path.expanduser(BOOSH_CONFIG), 'r') as config_file:
         config = BooshConfig(config_file)
 
-    result = cache_lookup(hostname, cache_file)
+    instance = None
+    cache_result = cache_lookup(hostname, cache_file)
+    if cache_result:
+        instance = cache_result
+    if not cache_result:
+        search_result = find_instance(hostname, config.profiles)
+        if search_result:
+            instance = search_result
+            cache_append(instance.as_cache_line(), cache_file)
 
-    cache_miss = False
-    if not result:
-        cache_miss = True
-        result = find_instance(hostname, config.profiles)
-
-    if result:
-        instance = result
-    else:
+    if not instance:
         print >> sys.stderr, "boosh: No instance found."
         sys.exit(1)
-
-    if cache_miss:
-        cache_append(instance.as_cache_line(), cache_file)
 
     gateway = find_gateway(instance, config)
     if gateway:
