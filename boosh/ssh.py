@@ -11,11 +11,14 @@ CACHE_FILE = '~/.cache/boosh/hosts'
 BOOSH_CONFIG = '~/.aws/boosh'
 
 logger = logging.getLogger('boosh.ssh')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 ch = logging.StreamHandler()
 formatter = logging.Formatter('[%(levelname)s] %(name)s: %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
+
+if 'BOOSH_DEBUG' in os.environ:
+    logger.setLevel(logging.DEBUG)
 
 
 class ConfigBase(object):
@@ -343,16 +346,19 @@ def main():
             cache_append(instance.as_cache_line(), cache_file)
 
     if not instance:
-        print >> sys.stderr, "boosh: No instance found."
+        logger.error("no instance found with instance ID %s, exiting.",
+                     hostname)
         sys.exit(1)
 
     gateway = find_gateway(instance, config)
     if gateway:
-        # Connect through gateway
+        logger.info("connecting through gateway '%s'...", gateway.name)
         ssh_proc = gateway.as_ssh_command(instance)
         ssh_proc.communicate()
     elif instance.public_ip_address:
         # Connect "directly" via netcat
+        logger.info("connecting directly to %s:%s...",
+                    instance.public_ip_address, port)
         ssh_proc = subprocess.Popen(
             ('/usr/bin/nc', instance.public_ip_address, port),
             stdin=sys.stdin,
@@ -360,6 +366,6 @@ def main():
         )
         ssh_proc.communicate()
     else:
-        print >> sys.stderr, ("boosh: Neither a public IP nor a gateway was "
-                              "available for this host. Exiting.")
+        logger.error("neither a public IP nor a gateway was available for "
+                     "this host, exiting.")
         sys.exit(1)
