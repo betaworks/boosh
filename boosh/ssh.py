@@ -82,41 +82,6 @@ class ConfigGateway(ConfigBase):
         'ssh_options',
     )
 
-    def as_ssh_command(self, instance):
-        ssh_options, ssh_command = [], []
-
-        # Set extra options first
-        if self.ssh_options:
-            ssh_options.extend(self.ssh_options.split(' '))
-
-        ssh_options.append("-p%s" % self.port)
-
-        if self.user:
-            ssh_options.extend(('-l', self.user))
-
-        if self.identity_file:
-            identity_file_path = os.path.expanduser(self.identity_file)
-            ssh_options.extend(('-i', identity_file_path,
-                                '-oIdentitiesOnly=yes'))
-
-        if self.use_netcat:
-            ssh_options.extend(('-NT', '-oExitOnForwardFailure',
-                                '-oClearAllForwardings'))
-        else:
-            ssh_options.extend(('-W', '%s:%d' % (instance.private_ip_address,
-                                                 22)))
-
-        if self.use_netcat:
-            ssh_command = (self.netcat_path, instance.private_ip_address,
-                           '22')
-
-        ssh_args = ssh_options + [self.hostname] + ssh_command
-
-        p = subprocess.Popen(['/usr/bin/ssh'] + ssh_args, stdin=sys.stdin,
-                             stderr=sys.stderr)
-
-        return p
-
 
 class BooshConfig(object):
     config_class_map = {
@@ -312,6 +277,54 @@ def cache_append(line, cache_file_path):
         _open_and_write()
 
 
+def get_gateway_process(instance, port, gateway):
+    """
+    Create a subprocess to reach an instance through a gateway.
+    """
+    ssh_options, ssh_command = [], []
+
+    # Set extra options first
+    if gateway.ssh_options:
+        ssh_options.extend(gateway.ssh_options.split(' '))
+
+    ssh_options.append("-p%s" % gateway.port)
+
+    if gateway.user:
+        ssh_options.extend(('-l', gateway.user))
+
+    if gateway.identity_file:
+        identity_file_path = os.path.expanduser(gateway.identity_file)
+        ssh_options.extend(('-i', identity_file_path, '-oIdentitiesOnly=yes'))
+
+    if gateway.use_netcat:
+        ssh_options.extend(('-NT', '-oExitOnForwardFailure',
+                            '-oClearAllForwardings'))
+    else:
+        ssh_options.extend(('-W', '%s:%s' % (instance.private_ip_address,
+                                             port)))
+
+    if gateway.use_netcat:
+        ssh_command = (gateway.netcat_path, instance.private_ip_address, port)
+
+    ssh_args = ssh_options + [gateway.hostname] + ssh_command
+
+    return subprocess.Popen(['/usr/bin/ssh'] + ssh_args, stdin=sys.stdin,
+                            stderr=sys.stderr)
+
+
+def get_direct_process(instance, port):
+    """
+    Create a subprocess to reach an instance directly.
+    """
+    hostname = instance.public_ip_address
+
+    return subprocess.Popen(
+        ('/usr/bin/nc', hostname, port),
+        stdin=sys.stdin,
+        stdout=sys.stdout,
+    )
+
+
 def main():
     # Set up logging for interactive use
     logger.setLevel(logging.INFO)
@@ -355,17 +368,13 @@ def main():
     gateway = find_gateway(instance, config)
     if gateway:
         logger.info("connecting through gateway '%s'...", gateway.name)
-        ssh_proc = gateway.as_ssh_command(instance)
+        ssh_proc = get_gateway_process(instance, port, gateway)
         ssh_proc.communicate()
     elif instance.public_ip_address:
         # Connect "directly" via netcat
         logger.info("connecting directly to %s:%s...",
                     instance.public_ip_address, port)
-        ssh_proc = subprocess.Popen(
-            ('/usr/bin/nc', instance.public_ip_address, port),
-            stdin=sys.stdin,
-            stdout=sys.stdout,
-        )
+        ssh_proc = get_direct_process(instance, port)
         ssh_proc.communicate()
     else:
         logger.error("neither a public IP nor a gateway was available for "
