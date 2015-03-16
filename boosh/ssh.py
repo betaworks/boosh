@@ -7,8 +7,8 @@ import sys
 
 import botocore.session
 
-CACHE_FILE = '~/.cache/boosh/hosts'
-BOOSH_CONFIG = '~/.aws/boosh'
+DEFAULT_CACHE_FILE = '~/.cache/boosh/hosts'
+DEFAULT_BOOSH_CONFIG = '~/.aws/boosh'
 
 logger = logging.getLogger('boosh.ssh')
 
@@ -246,8 +246,7 @@ def find_instance(instance_id, config_profiles):
     return None
 
 
-def cache_lookup(hostname, file_path):
-    cache_file_path = os.path.abspath(os.path.expanduser(file_path))
+def cache_lookup(hostname, cache_file_path):
     try:
         with open(cache_file_path, 'r') as cf:
             for line in cf:
@@ -300,9 +299,7 @@ def find_gateway(instance, config):
     return None
 
 
-def cache_append(line, file_path):
-    cache_file_path = os.path.abspath(os.path.expanduser(file_path))
-
+def cache_append(line, cache_file_path):
     def _open_and_write():
         with open(cache_file_path, 'a+') as cf:
             cf.write(line + '\n')
@@ -326,26 +323,29 @@ def main():
     if 'BOOSH_DEBUG' in os.environ:
         logger.setLevel(logging.DEBUG)
 
+    cache_path = os.environ.get('BOOSH_HOSTS_FILE', DEFAULT_CACHE_FILE)
+    cache_path = os.path.abspath(os.path.expanduser(cache_path))
+    config_path = os.environ.get('BOOSH_CONFIG', DEFAULT_BOOSH_CONFIG)
+    config_path = os.path.abspath(os.path.expanduser(config_path))
+
     hostname = sys.argv[1]
     if len(sys.argv) > 2:
         port = sys.argv[2]
     else:
         port = '22'
 
-    cache_file = os.environ.get('BOOSH_HOSTS_FILE', CACHE_FILE)
-
-    with open(os.path.expanduser(BOOSH_CONFIG), 'r') as config_file:
+    with open(config_path, 'r') as config_file:
         config = BooshConfig(config_file)
 
     instance = None
-    cache_result = cache_lookup(hostname, cache_file)
+    cache_result = cache_lookup(hostname, cache_path)
     if cache_result:
         instance = cache_result
     if not cache_result:
         search_result = find_instance(hostname, config.profiles)
         if search_result:
             instance = search_result
-            cache_append(instance.as_cache_line(), cache_file)
+            cache_append(instance.as_cache_line(), cache_path)
 
     if not instance:
         logger.error("no instance found with instance ID %s, exiting.",
