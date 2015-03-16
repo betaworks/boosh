@@ -23,7 +23,56 @@ def test_config():
     buf = StringIO.StringIO()
     parser.write(buf)
     buf.seek(0)
+
     config = BooshConfig(buf)
     assert(len(config.profiles) == 2)
     assert(len(config.gateways) == 2)
-    assert(len(config.groups) == 0)
+
+
+def test_config_boolean():
+    parser = ConfigParser.RawConfigParser()
+
+    parser.add_section('gateway testing_true')
+    parser.set('gateway testing_true', 'hostname', "foo.example.org")
+    parser.set('gateway testing_true', 'use_netcat', "true")
+
+    parser.add_section('gateway testing_false')
+    parser.set('gateway testing_false', 'hostname', "foo.example.org")
+    parser.set('gateway testing_false', 'use_netcat', "false")
+
+    buf = StringIO.StringIO()
+    parser.write(buf)
+    buf.seek(0)
+    config = BooshConfig(buf)
+
+    assert(config.gateways['testing_true'].use_netcat == True)
+    assert(config.gateways['testing_false'].use_netcat == False)
+
+
+def test_config_string():
+    parser = ConfigParser.RawConfigParser()
+
+    parser.add_section('gateway testing')
+    parser.set('gateway testing', 'hostname', "foo.example.org")
+
+    buf = StringIO.StringIO()
+    parser.write(buf)
+    buf.seek(0)
+    config = BooshConfig(buf)
+
+    assert(config.gateways['testing'].hostname == "foo.example.org")
+
+
+def test_config_multistring():
+    parser = ConfigParser.RawConfigParser()
+
+    parser.add_section('profile testing')
+    parser.set('profile testing', 'regions', "us-west-1, us-east-1")
+
+    buf = StringIO.StringIO()
+    parser.write(buf)
+    buf.seek(0)
+    config = BooshConfig(buf)
+
+    profile = config.profiles['testing']
+    assert(profile.regions == ['us-west-1', 'us-east-1'])
