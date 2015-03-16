@@ -12,7 +12,7 @@ import boosh
 DEFAULT_CACHE_FILE = '~/.cache/boosh/hosts'
 DEFAULT_BOOSH_CONFIG = '~/.aws/boosh'
 
-logger = logging.getLogger('boosh.ssh')
+logger = logging.getLogger('boosh')
 
 
 class Instance(object):
