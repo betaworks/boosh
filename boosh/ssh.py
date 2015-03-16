@@ -78,9 +78,6 @@ def find_instance(instance_id, config_profiles):
     profiles_session = botocore.session.get_session()
 
     for profile in profiles_session.available_profiles:
-        if profile in ['_path']:
-            continue
-
         # Re-using the same session doesn't work
         session = botocore.session.get_session()
         session.profile = profile

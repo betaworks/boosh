@@ -17,7 +17,7 @@ setup(
     version='0.0.2',
     packages=find_packages(),
     install_requires=[
-        'botocore',
+        'botocore>=0.94.0',
     ],
     entry_points={
         'console_scripts': [
