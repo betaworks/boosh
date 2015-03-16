@@ -11,14 +11,6 @@ CACHE_FILE = '~/.cache/boosh/hosts'
 BOOSH_CONFIG = '~/.aws/boosh'
 
 logger = logging.getLogger('boosh.ssh')
-logger.setLevel(logging.INFO)
-ch = logging.StreamHandler()
-formatter = logging.Formatter('[%(levelname)s] %(name)s: %(message)s')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-
-if 'BOOSH_DEBUG' in os.environ:
-    logger.setLevel(logging.DEBUG)
 
 
 class ConfigBase(object):
@@ -324,6 +316,16 @@ def cache_append(line, file_path):
 
 
 def main():
+    # Set up logging for interactive use
+    logger.setLevel(logging.INFO)
+    ch = logging.StreamHandler()
+    formatter = logging.Formatter('[%(levelname)s] %(name)s: %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    if 'BOOSH_DEBUG' in os.environ:
+        logger.setLevel(logging.DEBUG)
+
     hostname = sys.argv[1]
     if len(sys.argv) > 2:
         port = sys.argv[2]
