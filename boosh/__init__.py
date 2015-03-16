@@ -1,3 +1,3 @@
 from __future__ import absolute_import
 
-from .config import BooshConfig
+from .config import Config

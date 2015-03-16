@@ -24,7 +24,7 @@ def test_config():
     parser.write(buf)
     buf.seek(0)
 
-    config = boosh.BooshConfig(buf)
+    config = boosh.Config(buf)
     assert len(config.profiles) == 2
     assert len(config.gateways) == 2
 
@@ -43,7 +43,7 @@ def test_config_boolean():
     buf = StringIO.StringIO()
     parser.write(buf)
     buf.seek(0)
-    config = boosh.BooshConfig(buf)
+    config = boosh.Config(buf)
 
     assert config.gateways['testing_true'].use_netcat == True
     assert config.gateways['testing_false'].use_netcat == False
@@ -58,7 +58,7 @@ def test_config_string():
     buf = StringIO.StringIO()
     parser.write(buf)
     buf.seek(0)
-    config = boosh.BooshConfig(buf)
+    config = boosh.Config(buf)
 
     assert config.gateways['testing'].hostname == "foo.example.org"
 
@@ -72,7 +72,7 @@ def test_config_multistring():
     buf = StringIO.StringIO()
     parser.write(buf)
     buf.seek(0)
-    config = boosh.BooshConfig(buf)
+    config = boosh.Config(buf)
 
     profile = config.profiles['testing']
     assert profile.regions == ['us-west-1', 'us-east-1']

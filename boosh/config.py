@@ -90,7 +90,7 @@ class ConfigGateway(ConfigBase):
     )
 
 
-class BooshConfig(object):
+class Config(object):
     """
     Reads an ini-style config file to build dicts of configurable objects.
     """

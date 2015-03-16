@@ -259,7 +259,7 @@ def main():
         port = '22'
 
     with open(config_path, 'r') as config_file:
-        config = boosh.BooshConfig(config_file)
+        config = boosh.Config(config_file)
 
     instance = None
     cache_result = cache_lookup(hostname, cache_path)
