@@ -2,6 +2,16 @@ import ConfigParser
 
 
 class ConfigBase(object):
+    """
+    Base class for configurable objects.
+
+    Interesting properties:
+     - defaults, a dict of any config keys that have default values
+     - bool_keys, a list of keys whose values should be treated as boolean
+     - multistring_keys, a list of keys whose values are comma-delimited
+       strings
+     - string_keys, a list of keys whose values are plain strings
+    """
     defaults = {}
     bool_keys = ()
     multistring_keys = ()
@@ -25,6 +35,9 @@ class ConfigBase(object):
 
 
 class ConfigGroup(ConfigBase):
+    """
+    Groups bind a subset of instances to a Gateway.
+    """
     defaults = {
         'ec2_classic': True,
         'profile': None,
@@ -44,12 +57,18 @@ class ConfigGroup(ConfigBase):
 
 
 class ConfigProfile(ConfigBase):
+    """
+    Profiles define additional attributes for an AWS Credential Profile.
+    """
     multistring_keys = (
         'regions',
     )
 
 
 class ConfigGateway(ConfigBase):
+    """
+    Gateways define SSH servers through which we may reach instances.
+    """
     defaults = {
         'port': '22',
         'user': None,
@@ -72,6 +91,9 @@ class ConfigGateway(ConfigBase):
 
 
 class BooshConfig(object):
+    """
+    Reads an ini-style config file to build dicts of configurable objects.
+    """
     config_class_map = {
         'gateway': ConfigGateway,
         'profile': ConfigProfile,
