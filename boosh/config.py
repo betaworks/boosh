@@ -17,6 +17,7 @@ class ConfigBase(object):
        strings
      - string_keys, a list of keys whose values are plain strings
     """
+    attribute = None
     defaults = {}
     bool_keys = ()
     multistring_keys = ()
@@ -49,6 +50,7 @@ class ConfigGroup(ConfigBase):
     """
     Groups bind a subset of instances to a Gateway.
     """
+    attribute = 'groups'
     defaults = {
         'ec2_classic': True,
         'profile': None,
@@ -71,6 +73,7 @@ class ConfigProfile(ConfigBase):
     """
     Profiles define additional attributes for an AWS Credential Profile.
     """
+    attribute = 'profiles'
     multistring_keys = (
         'regions',
     )
@@ -80,6 +83,7 @@ class ConfigGateway(ConfigBase):
     """
     Gateways define SSH servers through which we may reach instances.
     """
+    attribute = 'gateways'
     defaults = {
         'port': '22',
         'user': None,
@@ -105,17 +109,20 @@ class Config(object):
     """
     Reads an ini-style config file to build dicts of configurable objects.
     """
-    config_class_map = {
+    _kind_class_map = {
         'gateway': ConfigGateway,
         'profile': ConfigProfile,
         'group': ConfigGroup,
     }
 
+    _config_attrs = [cls.attribute for cls in _kind_class_map.values()]
+
     def __init__(self, config_file):
         self._parser = ConfigParser.SafeConfigParser()
         self._parser.readfp(config_file)
 
-        self.gateways, self.profiles, self.groups = {}, {}, {}
+        # Define an attribute (as en empty dict) for each kind
+        [setattr(self, attr, {}) for attr in self._config_attrs]
         for section in self._parser.sections():
             try:
                 kind, name = section.split(' ')
@@ -123,9 +130,9 @@ class Config(object):
                 logger.warning('skipping bad section name "%s"...', section)
                 continue
 
-            if (kind in self.config_class_map) and name:
-                config_dict = getattr(self, kind + 's')
-                config_class = self.config_class_map[kind]
+            if (kind in self._kind_class_map) and name:
+                config_class = self._kind_class_map[kind]
+                config_dict = getattr(self, config_class.attribute)
                 config_dict[name] = config_class(name, section, self._parser)
             else:
                 logger.warning('skipping unknown section type "%s"...', kind)
