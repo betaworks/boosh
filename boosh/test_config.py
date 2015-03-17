@@ -104,3 +104,20 @@ def test_config_missing_string():
     buf.seek(0)
     with pytest.raises(MissingOptionError):
         boosh.Config(buf)
+
+
+def test_bad_section_names():
+    parser = ConfigParser.RawConfigParser()
+    parser.add_section(' profile')
+    parser.add_section('profile ')
+    parser.add_section('testing section')
+    parser.add_section(' ')
+
+    buf = StringIO.StringIO()
+    parser.write(buf)
+    buf.seek(0)
+
+    config = boosh.Config(buf)
+    assert len(config.profiles) == 0
+    assert len(config.gateways) == 0
+    assert len(config.groups) == 0

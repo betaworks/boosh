@@ -1,6 +1,9 @@
 import ConfigParser
+import logging
 
 from boosh.exceptions import MissingOptionError
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigBase(object):
@@ -114,9 +117,16 @@ class Config(object):
 
         self.gateways, self.profiles, self.groups = {}, {}, {}
         for section in self._parser.sections():
-            kind, name = section.split(' ')
+            try:
+                kind, name = section.split(' ')
+            except ValueError:
+                logger.warning('skipping bad section name "%s"...', section)
+                continue
 
-            if kind in self.config_class_map:
+            if (kind in self.config_class_map) and name:
                 config_dict = getattr(self, kind + 's')
                 config_class = self.config_class_map[kind]
                 config_dict[name] = config_class(name, section, self._parser)
+            else:
+                logger.warning('skipping unknown section type "%s"...', kind)
+                continue
