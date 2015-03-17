@@ -1,7 +1,11 @@
 import ConfigParser
 import StringIO
 
+import pytest
+
 import boosh
+
+from boosh.exceptions import MissingOptionError
 
 
 def test_config():
@@ -76,3 +80,27 @@ def test_config_multistring():
 
     profile = config.profiles['testing']
     assert profile.regions == ['us-west-1', 'us-east-1']
+
+
+def test_config_missing_multistring():
+    parser = ConfigParser.RawConfigParser()
+
+    parser.add_section('profile testing')
+
+    buf = StringIO.StringIO()
+    parser.write(buf)
+    buf.seek(0)
+    with pytest.raises(MissingOptionError):
+        boosh.Config(buf)
+
+
+def test_config_missing_string():
+    parser = ConfigParser.RawConfigParser()
+
+    parser.add_section('gateway testing')
+
+    buf = StringIO.StringIO()
+    parser.write(buf)
+    buf.seek(0)
+    with pytest.raises(MissingOptionError):
+        boosh.Config(buf)

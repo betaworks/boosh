@@ -1,5 +1,7 @@
 import ConfigParser
 
+from boosh.exceptions import MissingOptionError
+
 
 class ConfigBase(object):
     """
@@ -17,9 +19,7 @@ class ConfigBase(object):
     multistring_keys = ()
     string_keys = ()
 
-    def __init__(self, name, section, parser):
-        self.name = name
-
+    def _read_config_items(self, section, parser):
         for key in self.string_keys:
             self.__dict__[key] = parser.get(section, key, vars=self.defaults)
 
@@ -32,6 +32,14 @@ class ConfigBase(object):
         for key in self.multistring_keys:
             raw_value = parser.get(section, key, vars=self.defaults)
             self.__dict__[key] = [i.strip() for i in raw_value.split(',')]
+
+    def __init__(self, name, section, parser):
+        self.name = name
+
+        try:
+            self._read_config_items(section, parser)
+        except ConfigParser.NoOptionError, e:
+            raise MissingOptionError(e)
 
 
 class ConfigGroup(ConfigBase):
