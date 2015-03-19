@@ -119,18 +119,17 @@ def find_instance(instance_id, config_profiles):
     return None
 
 
-def cache_lookup(hostname, cache_file_path):
-    try:
-        with open(cache_file_path, 'r') as cf:
-            for line in cf:
-                if line.startswith('#'):
-                    continue
-                elif line.startswith(hostname):
-                    return Instance.from_cache_line(line.rstrip())
+def cache_lookup(key, cache_file):
+    """
+    Find a cache line matching the key and return the first match.
+    """
+    for line in cache_file:
+        if line.startswith('#'):
+            continue
+        elif line.startswith(key):
+            return Instance.from_cache_line(line.rstrip())
 
-                continue
-    except IOError:
-        pass
+        continue
 
     return None
 
@@ -170,19 +169,6 @@ def find_gateway(instance, config):
         return config.gateways[instance.profile_name]
 
     return None
-
-
-def cache_append(line, cache_file_path):
-    def _open_and_write():
-        with open(cache_file_path, 'a+') as cf:
-            cf.write(line + '\n')
-
-    try:
-        _open_and_write()
-    except IOError:
-        cache_dir = os.path.dirname(cache_file_path)
-        os.makedirs(cache_dir)
-        _open_and_write()
 
 
 def get_gateway_process(instance, port, gateway):
@@ -259,14 +245,23 @@ def main():
         config = boosh.Config(config_file)
 
     instance = None
-    cache_result = cache_lookup(hostname, cache_path)
+    try:
+        cache_file = open(cache_path, 'a+')
+    except IOError:
+        os.makedirs(os.path.dirname(cache_path))
+        cache_file = open(cache_path, 'a+')
+
+    # Search the local cache first, then fall back to EC2
+    cache_result = cache_lookup(hostname, cache_file)
     if cache_result:
         instance = cache_result
-    if not cache_result:
-        search_result = find_instance(hostname, config.profiles)
-        if search_result:
-            instance = search_result
-            cache_append(instance.as_cache_line(), cache_path)
+    else:
+        find_result = find_instance(hostname, config.profiles)
+        if find_result:
+            instance = find_result
+            cache_file.write(instance.as_cache_line() + '\n')
+
+    cache_file.close()
 
     if not instance:
         logger.error("no instance found with instance ID %s, exiting.",
