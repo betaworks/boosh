@@ -250,7 +250,6 @@ def main():
     with open(config_path, 'r') as config_file:
         config = boosh.Config(config_file)
 
-    instance = None
     try:
         cache_file = open(cache_path, 'a+')
     except IOError:
@@ -258,6 +257,7 @@ def main():
         cache_file = open(cache_path, 'a+')
 
     # Search the local cache first, then fall back to EC2
+    instance = None
     cache_result = cache_lookup(hostname, cache_file)
     if cache_result:
         instance = cache_result
