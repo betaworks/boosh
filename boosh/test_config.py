@@ -105,6 +105,17 @@ def test_config_missing_string():
     with pytest.raises(MissingOptionError):
         boosh.Config(buf)
 
+def test_config_missing_multistring():
+    parser = ConfigParser.RawConfigParser()
+
+    parser.add_section('profile testing')
+
+    buf = StringIO.StringIO()
+    parser.write(buf)
+    buf.seek(0)
+    with pytest.raises(MissingOptionError):
+        boosh.Config(buf)
+
 
 def test_bad_section_names():
     parser = ConfigParser.RawConfigParser()
