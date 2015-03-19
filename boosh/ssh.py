@@ -16,7 +16,9 @@ logger = logging.getLogger('boosh')
 
 
 class Instance(object):
-    """Subset of EC2 instance properties needed for remote connection."""
+    """
+    Subset of EC2 instance properties needed for remote connection.
+    """
     def __init__(self, id, profile_name, region, private_ip_address,
                  public_ip_address=None, vpc_id=None, subnet_id=None):
 
@@ -30,8 +32,9 @@ class Instance(object):
 
     @classmethod
     def from_instance_data(cls, data, profile_name, region):
-        """Return an Instance given a raw EC2 DescribeInstances dictionary."""
-
+        """
+        Return an Instance given a raw EC2 DescribeInstances dictionary.
+        """
         return cls(
             id=data.get('InstanceId'),
             profile_name=profile_name,
@@ -73,8 +76,9 @@ class Instance(object):
 
 
 def find_instance(instance_id, config_profiles):
-    """Search through all AWS profiles and regions for an instance."""
-
+    """
+    Search through all AWS profiles and regions for an instance.
+    """
     profiles_session = botocore.session.get_session()
 
     for profile in profiles_session.available_profiles:
@@ -135,8 +139,9 @@ def cache_lookup(key, cache_file):
 
 
 def find_group_match(instance, groups):
-    """Find a group match for the instance."""
-
+    """
+    Loop through defined groups and return the first match for the instance.
+    """
     fields_map = {
         'profile': instance.profile_name,
         'region': instance.region,
@@ -158,8 +163,9 @@ def find_group_match(instance, groups):
 
 
 def find_gateway(instance, config):
-    """Find an appropriate gateway."""
-
+    """
+    Find a gateway that matches the instance by name or through grouping.
+    """
     group_name = find_group_match(instance, config.groups)
     if group_name:
         gateway_name = config.groups[group_name].gateway
