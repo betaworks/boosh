@@ -1,7 +1,6 @@
 boosh
 =====
-An SSH ProxyCommand script to help you reach your Amazon EC2 instances by ID. Boosh supports multiple AWS accounts, SSH gateways (bastion hosts), VPC subnets, and multiple EC2 regions.
-
+An SSH ProxyCommand script to help you reach your Amazon EC2 instances by ID. Boosh supports multiple AWS accounts, SSH gateways (a.k.a. [bastion hosts](https://en.wikipedia.org/wiki/Bastion_host)), VPC subnets, and multiple EC2 regions.
 ## Example Usage ##
 ```
 $ ssh i-0e28ece1
@@ -10,7 +9,6 @@ Last login: Thu Feb 12 21:44:35 2015 from 128.177.165.170
 jsmith@west-0e28ece1:~$
 ```
 It's that easy!
-
 ## Installation ##
 ```
 $ pip install git+ssh://git@github.com/betaworks/boosh.git#egg=boosh
