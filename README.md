@@ -61,7 +61,27 @@ Boosh assumes your AWS credentials are set up for use with the AWS SDKs. If they
 ## Advanced Setup ##
 Coming soon!
 
+### Environment Variables ###
+There are several environment variables you may set to control runtime behavior:
+
+`BOOSH_DEBUG`: When set, increases stderr logging verbosity. Defaults to unset.
+
+`BOOSH_HOSTS_FILE`: Where to store cached EC2 instance data. Defaults to `~/.cache/boosh/hosts`
+
+`BOOSH_CONFIG`: , boosh config file location. Defaults to `~/.aws/boosh`
+
 ## Troubleshooting ##
 If you have any trouble, check the cache file (`~/.cache/boosh/hosts`) to see
 what boosh thinks it knows about the EC2 instance in question. Adding `-vvvv`
 to SSH is also a handy trick.
+
+Setting the `BOOSH_DEBUG` environment variable will display debug logging output:
+```
+$ BOOSH_DEBUG=1 ssh i-0e28ece1
+[DEBUG] boosh: connecting to region 'us-east-1' with AWS profile 'example-global'...
+[DEBUG] boosh: connecting to region 'us-west-2' with AWS profile 'example-global'...
+[INFO] boosh: connecting through gateway 'example-global'...
+(remote-0e28ece1 ~)$
+```
+
+Adding `-v` or `-vvv` to your SSH command will increase the verbosity of the "outer" (non-gateway) SSH connection, and is helpful when troubleshooting authentication errors.
