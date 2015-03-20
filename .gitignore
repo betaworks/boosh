@@ -3,3 +3,6 @@
 
 # Ignore tox logs
 .tox
+
+# Ignore `setup.py sdist` output
+/dist
