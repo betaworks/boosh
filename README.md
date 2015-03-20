@@ -1,6 +1,9 @@
 boosh
 =====
-An SSH ProxyCommand script to help you reach your Amazon EC2 instances by ID. Boosh supports multiple AWS accounts, SSH gateways (a.k.a. [bastion hosts](https://en.wikipedia.org/wiki/Bastion_host)), VPC subnets, and multiple EC2 regions.
+An SSH ProxyCommand script to help you reach your Amazon EC2 instances by ID.
+Boosh supports multiple AWS accounts, SSH gateways (a.k.a. [bastion
+hosts](https://en.wikipedia.org/wiki/Bastion_host)), VPC subnets, and multiple
+EC2 regions.
 ## Example Usage ##
 ```
 $ ssh i-0e28ece1
@@ -15,13 +18,17 @@ $ pip install git+ssh://git@github.com/betaworks/boosh.git#egg=boosh
 ```
 ## Simple Setup ##
 ### AWS Credentials ###
-Boosh assumes your AWS credentials are set up for use with the AWS SDKs. If they're not, or you're unsure, the easiest way to get started is by setting up the excellent [AWS CLI](https://aws.amazon.com/cli/).
+Boosh assumes your AWS credentials are set up for use with the AWS SDKs. If
+they're not, or you're unsure, the easiest way to get started is by setting up
+the excellent [AWS CLI](https://aws.amazon.com/cli/).
  0. Install AWS CLI with `pip` or your package manager of choice:
 
     ```
     $ pip install awscli
     ```
- 0. Configure AWS CLI with the interactive prompts. If you're working with multiple accounts, use the optional `--profile=<name>` flag to give this set of credentials a name:
+ 0. Configure AWS CLI with the interactive prompts. If you're working with
+ multiple accounts, use the optional `--profile=<name>` flag to give this set
+ of credentials a name:
 
     ```
     $ aws configure --profile=example
@@ -46,27 +53,35 @@ Boosh assumes your AWS credentials are set up for use with the AWS SDKs. If they
         }
     }
     ```
- 0. You're done! AWS CLI is working, and now we can make use of these credentials in Boosh - once SSH is configured.
+ 0. You're done! AWS CLI is working, and now we can make use of these
+ credentials in Boosh - once SSH is configured.
 
 ### SSH Configuration ###
- 0. Once AWS Credentials have been configured, we need to tell SSH to run boosh when trying to reach an EC2 instance by ID. Add the following stanza to your `~/.ssh/config` file, replacing `YOUR-SSH-USERNAME` with the username you typically use on your EC2 instances:
+ 0. Once AWS Credentials have been configured, we need to tell SSH to run boosh
+ when trying to reach an EC2 instance by ID. Add the following stanza to your
+ `~/.ssh/config` file, replacing `YOUR-SSH-USERNAME` with the username you
+ typically use on your EC2 instances:
  
     ```
     Host i-*
         User YOUR-SSH-USERNAME
         ProxyCommand boosh_proxy %h %p
     ```
- 0. You're all set! If your EC2 instances are reachable directly over SSH, no further configuration is required. Otherwise, you'll need to set up a gateway - see the Advanced Configuration section below.
+ 0. You're all set! If your EC2 instances are reachable directly over SSH, no
+ further configuration is required. Otherwise, you'll need to set up a gateway
+ - see the Advanced Configuration section below.
 
 ## Advanced Setup ##
 Coming soon!
 
 ### Environment Variables ###
-There are several environment variables you may set to control runtime behavior:
+There are several environment variables you may set to control runtime
+behavior:
 
 `BOOSH_DEBUG`: When set, increases stderr logging verbosity. Defaults to unset.
 
-`BOOSH_HOSTS_FILE`: Where to store cached EC2 instance data. Defaults to `~/.cache/boosh/hosts`
+`BOOSH_HOSTS_FILE`: Where to store cached EC2 instance data. Defaults to
+`~/.cache/boosh/hosts`
 
 `BOOSH_CONFIG`: , boosh config file location. Defaults to `~/.aws/boosh`
 
@@ -75,7 +90,9 @@ If you have any trouble, check the cache file (`~/.cache/boosh/hosts`) to see
 what boosh thinks it knows about the EC2 instance in question. Adding `-vvvv`
 to SSH is also a handy trick.
 
-Setting the `BOOSH_DEBUG` environment variable will display debug logging output:
+Setting the `BOOSH_DEBUG` environment variable will display debug logging
+output:
+
 ```
 $ BOOSH_DEBUG=1 ssh i-0e28ece1
 [DEBUG] boosh: connecting to region 'us-east-1' with AWS profile 'example-global'...
