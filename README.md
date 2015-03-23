@@ -72,18 +72,96 @@ the excellent [AWS CLI](https://aws.amazon.com/cli/).
  - see the Advanced Configuration section below.
 
 ## Advanced Setup ##
-Coming soon!
+If you need to make use of gateways, multiple regions for a given credential
+profile, or use specific gateways for sub-sets of EC2 hosts, you'll need to
+create a Boosh configuration file.
+
+By default, Boosh will look for a config file in `~/.aws/boosh`, and may be
+populated with one or more of the following configurables:
+
+### Gateways ###
+SSH Gateways allow you to relay an SSH connection through an intermediary
+server, which is tremendously helpful when the EC2 node you're trying to reach
+isn't exposing a publicly-accessible SSH server. If the name of a gateway
+matches the name of an AWS credential profile, it will be used for all EC2
+instances reachable under that profile.
+
+A sample gateway configuration:
+```ini
+[gateway example]
+hostname = bastion.ec2.example.org
+```
+
+#### Gateway Parameters ###
+ - *hostname* (required) hostname or IP to connect to
+ - *port* (default: `22`) SSH port of the gateway host
+ - *user* (default: local username) SSH user on the gateway host
+ - *use_netcat* (boolean, default: `false`) When false, uses the `-W`
+   behavior added in OpenSSH 5.4. If the gateway host is running an earlier
+   release of OpenSSH, set this to true and netcat will be used instead.
+ - *netcat_path* (default: `/usr/bin/nc`) Only used when `use_netcat=true`,
+   defines the path to the netcat binary on the gateway host
+ - *identity_file* Defines the path to an SSH private key file
+ - *ssh_options* additional command-line options to be added to the outer
+   (gateway) connection
+
+### Profiles ####
+AWS Credential profiles may be configured with a default region, but sometimes
+you want to use the same credentials in multiple regions. Boosh allows you
+to specify a list of regions for a profile.
+
+A sample profile configuration:
+```ini
+[profile example]
+regions = us-east-1, us-west-1
+```
+
+#### Profile Parameters ####
+- *regions* (required) a comma-separated list of EC2 regions to search through,
+  instead of the region specified in `~/.aws/config`
+
+### Groups ###
+In complex AWS environments, a single gateway won't be enough to reach all EC2
+instances in an account. Groups allow you to specify matching conditions for
+instances, and map them to a configured Gateway. The first group that matches
+an instance will be used, so they should be ordered from most-specific to
+least-specific.
+
+A sample group and gateway configuration:
+```ini
+# Use one gateway for a specific VPC, and another for everything else
+[gateway example-vpc]
+hostname = bastion.vpc.example.org
+
+[gateway example-classic]
+hostname = bastion.example.org
+
+[group example-vpc]
+profile = example
+gateway = example-vpc
+vpc_id = vpc-bbe848de
+
+[group example-classic]
+profile = example
+gateway = example-classic
+```
+
+#### Group Parameters ###
+ - *gateway* (required) the name of a gateway configuration
+ - *profile* name of the credential profile to use
+ - *ec2_classic* (boolean) match instances in EC2 classic networking
+ - *region* match instances in a specific region
+ - *subnet_id* match instances in a specific subnet
+ - *vpc_id* match instances in a specific VPC
 
 ### Environment Variables ###
 There are several environment variables you may set to control runtime
 behavior:
 
-`BOOSH_DEBUG`: When set, increases stderr logging verbosity. Defaults to unset.
-
-`BOOSH_HOSTS_FILE`: Where to store cached EC2 instance data. Defaults to
-`~/.cache/boosh/hosts`
-
-`BOOSH_CONFIG`: , boosh config file location. Defaults to `~/.aws/boosh`
+ - *BOOSH_DEBUG* When set, increases stderr logging verbosity. Defaults to unset.
+ - *BOOSH_HOSTS_FILE* Where to store cached EC2 instance data. Defaults to
+   `~/.cache/boosh/hosts`
+ - *BOOSH_CONFIG* config file location. Defaults to `~/.aws/boosh`
 
 ## Troubleshooting ##
 If you have any trouble, check the cache file (`~/.cache/boosh/hosts`) to see
@@ -101,4 +179,6 @@ $ BOOSH_DEBUG=1 ssh i-0e28ece1
 (remote-0e28ece1 ~)$
 ```
 
-Adding `-v` or `-vvv` to your SSH command will increase the verbosity of the "outer" (non-gateway) SSH connection, and is helpful when troubleshooting authentication errors.
+Adding `-v` or `-vvv` to your SSH command will increase the verbosity of the
+"outer" (non-gateway) SSH connection, and is helpful when troubleshooting
+authentication errors.
