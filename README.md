@@ -93,16 +93,16 @@ hostname = bastion.ec2.example.org
 ```
 
 #### Gateway Parameters ###
- - *hostname* (required) hostname or IP to connect to
- - *port* (default: `22`) SSH port of the gateway host
- - *user* (default: local username) SSH user on the gateway host
- - *use_netcat* (boolean, default: `false`) When false, uses the `-W`
+ - `hostname` (required) hostname or IP to connect to
+ - `port` (default: `22`) SSH port of the gateway host
+ - `user` (default: local username) SSH user on the gateway host
+ - `use_netcat` (boolean, default: `false`) When false, uses the `-W`
    behavior added in OpenSSH 5.4. If the gateway host is running an earlier
    release of OpenSSH, set this to true and netcat will be used instead.
- - *netcat_path* (default: `/usr/bin/nc`) Only used when `use_netcat=true`,
+ - `netcat_path` (default: `/usr/bin/nc`) Only used when `use_netcat=true`,
    defines the path to the netcat binary on the gateway host
- - *identity_file* Defines the path to an SSH private key file
- - *ssh_options* additional command-line options to be added to the outer
+ - `identity_file` Defines the path to an SSH private key file
+ - `ssh_options` additional command-line options to be added to the outer
    (gateway) connection
 
 ### Profiles ####
@@ -117,7 +117,7 @@ regions = us-east-1, us-west-1
 ```
 
 #### Profile Parameters ####
-- *regions* (required) a comma-separated list of EC2 regions to search through,
+- `regions` (required) a comma-separated list of EC2 regions to search through,
   instead of the region specified in `~/.aws/config`
 
 ### Groups ###
@@ -147,21 +147,21 @@ gateway = example-classic
 ```
 
 #### Group Parameters ###
- - *gateway* (required) the name of a gateway configuration
- - *profile* name of the credential profile to use
- - *ec2_classic* (boolean) match instances in EC2 classic networking
- - *region* match instances in a specific region
- - *subnet_id* match instances in a specific subnet
- - *vpc_id* match instances in a specific VPC
+ - `gateway` (required) the name of a gateway configuration
+ - `profile` name of the credential profile to use
+ - `ec2_classic` (boolean) match instances in EC2 classic networking
+ - `region` match instances in a specific region
+ - `subnet_id` match instances in a specific subnet
+ - `vpc_id` match instances in a specific VPC
 
 ### Environment Variables ###
 There are several environment variables you may set to control runtime
 behavior:
 
- - *BOOSH_DEBUG* When set, increases stderr logging verbosity. Defaults to unset.
- - *BOOSH_HOSTS_FILE* Where to store cached EC2 instance data. Defaults to
+ - `BOOSH_DEBUG` When set, increases stderr logging verbosity. Defaults to unset.
+ - `BOOSH_HOSTS_FILE` Where to store cached EC2 instance data. Defaults to
    `~/.cache/boosh/hosts`
- - *BOOSH_CONFIG* config file location. Defaults to `~/.aws/boosh`
+ - `BOOSH_CONFIG` config file location. Defaults to `~/.aws/boosh`
 
 ## Troubleshooting ##
 If you have any trouble, check the cache file (`~/.cache/boosh/hosts`) to see
