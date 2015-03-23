@@ -62,6 +62,7 @@ class ConfigGroup(ConfigBase):
         'ec2_classic',
     )
     string_keys = (
+        'gateway',
         'profile'
         'region',
         'subnet_id',
