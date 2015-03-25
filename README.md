@@ -16,7 +16,7 @@ jsmith@west-0e28ece1:~$
 It's that easy!
 ## Installation ##
 ```
-$ pip install git+ssh://git@github.com/betaworks/boosh.git#egg=boosh
+$ pip install boosh
 ```
 ## Simple Setup ##
 ### AWS Credentials ###
