@@ -16,6 +16,7 @@ class Tox(test):
 setup(
     name='boosh',
     version='0.1.0.dev1',
+    description='SSH to your your private EC2 instances by ID',
     packages=find_packages(),
     install_requires=[
         'botocore>=0.94.0',
@@ -29,11 +30,20 @@ setup(
     cmdclass={'test': Tox},
     author='Paul Handly',
     author_email='ph@betaworks.com',
+    url='https://github.com/betaworks/boosh',
     license='MIT',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
+        'Environment :: Console',
+        'Intended Audience :: Developers',
+        'Intended Audience :: System Administrators',
         'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 2 :: Only',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python',
+        'Topic :: Utilities',
     ],
+    keywords=['ec2', 'ssh', 'shell', 'aws', 'bastion', 'firewall', 'proxy'],
 )
