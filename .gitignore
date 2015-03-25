@@ -4,5 +4,8 @@
 # Ignore tox logs
 .tox
 
-# Ignore `setup.py sdist` output
+# Ignore sdist output
 /dist
+
+# Ignore bdist output
+/build
