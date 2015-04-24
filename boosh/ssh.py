@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 
+import botocore.exceptions
 import botocore.session
 
 import boosh
@@ -98,27 +99,22 @@ def find_instance(instance_id, config_profiles):
             else:
                 regions = [region]
 
-        ec2 = session.get_service('ec2')
-        operation = ec2.get_operation('DescribeInstances')
         for region in regions:
             logger.debug("connecting to region '%s' with AWS profile '%s'...",
                          region, profile)
-            endpoint = ec2.get_endpoint(region)
+            ec2 = session.create_client('ec2', region)
+
             try:
-                resp, data = operation.call(
-                    endpoint,
-                    instance_ids=[instance_id],
-                )
+                resp = ec2.describe_instances(InstanceIds=[instance_id])
             except botocore.exceptions.NoCredentialsError:
                 break
-
-            if resp.status_code == 200:
-                for reservation in data['Reservations']:
-                    for instance_data in reservation['Instances']:
-                        return Instance.from_instance_data(instance_data,
-                                                           profile, region)
-            else:
+            except botocore.exceptions.ClientError:
                 continue
+
+            for reservation in resp['Reservations']:
+                for instance_data in reservation['Instances']:
+                    return Instance.from_instance_data(instance_data, profile,
+                                                       region)
 
     return None
 
