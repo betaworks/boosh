@@ -15,11 +15,11 @@ class Tox(test):
 
 setup(
     name='boosh',
-    version='0.1.0.dev1',
+    version='0.2.0',
     description='SSH to your your private EC2 instances by ID',
     packages=find_packages(),
     install_requires=[
-        'botocore>=0.94.0',
+        'botocore<=1.1.99',
     ],
     entry_points={
         'console_scripts': [

@@ -1,5 +1,6 @@
-*.pyc
+*.py[oc]
 *.egg-info
+.eggs
 
 # Ignore tox logs
 .tox

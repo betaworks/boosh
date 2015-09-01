@@ -79,12 +79,11 @@ def find_instance(instance_id, config_profiles):
     """
     Search through all AWS profiles and regions for an instance.
     """
-    profiles_session = botocore.session.get_session()
+    profiles_session = botocore.session.Session()
 
     for profile in profiles_session.available_profiles:
         # Re-using the same session doesn't work
-        session = botocore.session.get_session()
-        session.profile = profile
+        session = botocore.session.Session(profile=profile)
 
         # Prefer regions listed in the profile
         regions = None
@@ -98,27 +97,31 @@ def find_instance(instance_id, config_profiles):
             else:
                 regions = [region]
 
-        ec2 = session.get_service('ec2')
-        operation = ec2.get_operation('DescribeInstances')
         for region in regions:
             logger.debug("connecting to region '%s' with AWS profile '%s'...",
                          region, profile)
-            endpoint = ec2.get_endpoint(region)
             try:
-                resp, data = operation.call(
-                    endpoint,
-                    instance_ids=[instance_id],
-                )
-            except botocore.exceptions.NoCredentialsError:
+                ec2 = session.create_client('ec2', region)
+            except botocore.exceptions.BotoCoreError:
+                logger.debug("skipping profile '%s' due to exception...",
+                             profile, exc_info=True)
                 break
 
-            if resp.status_code == 200:
-                for reservation in data['Reservations']:
-                    for instance_data in reservation['Instances']:
-                        return Instance.from_instance_data(instance_data,
-                                                           profile, region)
-            else:
+
+            try:
+                resp = ec2.describe_instances(InstanceIds=[instance_id])
+            except botocore.exceptions.ClientError:
+                # If instance is not found, a ClientError is raised
                 continue
+            except botocore.exceptions.BotoCoreError:
+                logger.debug("skipping profile '%s' due to exception...",
+                             profile, exc_info=True)
+                break
+
+            for reservation in resp['Reservations']:
+                for instance_data in reservation['Instances']:
+                    return Instance.from_instance_data(instance_data, profile,
+                                                       region)
 
     return None
 
