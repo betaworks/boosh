@@ -20,6 +20,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'botocore<=1.1.99',
+        'six',
     ],
     entry_points={
         'console_scripts': [
@@ -39,10 +40,12 @@ setup(
         'Intended Audience :: System Administrators',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2 :: Only',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python',
+        'Programming Language :: Python :: Implementation :: CPython',
         'Topic :: Utilities',
     ],
     keywords=['ec2', 'ssh', 'shell', 'aws', 'bastion', 'firewall', 'proxy'],

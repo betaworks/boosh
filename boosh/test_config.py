@@ -1,15 +1,15 @@
-import ConfigParser
-import StringIO
-
 import pytest
 
 import boosh
+
+from six import StringIO
+from six.moves import configparser
 
 from boosh.exceptions import MissingOptionError
 
 
 def test_config():
-    parser = ConfigParser.RawConfigParser()
+    parser = configparser.RawConfigParser()
     parser.add_section('gateway foo')
     parser.set('gateway foo', 'hostname', "foo.example.org")
     parser.set('gateway foo', 'user', "jsmith")
@@ -24,7 +24,7 @@ def test_config():
     parser.add_section('profile bar')
     parser.set('profile bar', 'regions', "us-west-2, sa-east-1")
 
-    buf = StringIO.StringIO()
+    buf = StringIO()
     parser.write(buf)
     buf.seek(0)
 
@@ -34,7 +34,7 @@ def test_config():
 
 
 def test_config_boolean():
-    parser = ConfigParser.RawConfigParser()
+    parser = configparser.RawConfigParser()
 
     parser.add_section('gateway testing_true')
     parser.set('gateway testing_true', 'hostname', "foo.example.org")
@@ -44,7 +44,7 @@ def test_config_boolean():
     parser.set('gateway testing_false', 'hostname', "foo.example.org")
     parser.set('gateway testing_false', 'use_netcat', "false")
 
-    buf = StringIO.StringIO()
+    buf = StringIO()
     parser.write(buf)
     buf.seek(0)
     config = boosh.Config(buf)
@@ -54,12 +54,12 @@ def test_config_boolean():
 
 
 def test_config_string():
-    parser = ConfigParser.RawConfigParser()
+    parser = configparser.RawConfigParser()
 
     parser.add_section('gateway testing')
     parser.set('gateway testing', 'hostname', "foo.example.org")
 
-    buf = StringIO.StringIO()
+    buf = StringIO()
     parser.write(buf)
     buf.seek(0)
     config = boosh.Config(buf)
@@ -68,12 +68,12 @@ def test_config_string():
 
 
 def test_config_multistring():
-    parser = ConfigParser.RawConfigParser()
+    parser = configparser.RawConfigParser()
 
     parser.add_section('profile testing')
     parser.set('profile testing', 'regions', "us-west-1, us-east-1")
 
-    buf = StringIO.StringIO()
+    buf = StringIO()
     parser.write(buf)
     buf.seek(0)
     config = boosh.Config(buf)
@@ -83,11 +83,11 @@ def test_config_multistring():
 
 
 def test_config_missing_multistring():
-    parser = ConfigParser.RawConfigParser()
+    parser = configparser.RawConfigParser()
 
     parser.add_section('profile testing')
 
-    buf = StringIO.StringIO()
+    buf = StringIO()
     parser.write(buf)
     buf.seek(0)
     with pytest.raises(MissingOptionError):
@@ -95,22 +95,22 @@ def test_config_missing_multistring():
 
 
 def test_config_missing_string():
-    parser = ConfigParser.RawConfigParser()
+    parser = configparser.RawConfigParser()
 
     parser.add_section('gateway testing')
 
-    buf = StringIO.StringIO()
+    buf = StringIO()
     parser.write(buf)
     buf.seek(0)
     with pytest.raises(MissingOptionError):
         boosh.Config(buf)
 
 def test_config_missing_multistring():
-    parser = ConfigParser.RawConfigParser()
+    parser = configparser.RawConfigParser()
 
     parser.add_section('profile testing')
 
-    buf = StringIO.StringIO()
+    buf = StringIO()
     parser.write(buf)
     buf.seek(0)
     with pytest.raises(MissingOptionError):
@@ -118,13 +118,13 @@ def test_config_missing_multistring():
 
 
 def test_bad_section_names():
-    parser = ConfigParser.RawConfigParser()
+    parser = configparser.RawConfigParser()
     parser.add_section(' profile')
     parser.add_section('profile ')
     parser.add_section('testing section')
     parser.add_section(' ')
 
-    buf = StringIO.StringIO()
+    buf = StringIO()
     parser.write(buf)
     buf.seek(0)
 

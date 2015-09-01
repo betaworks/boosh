@@ -1,5 +1,6 @@
-import ConfigParser
 import logging
+
+from six.moves import configparser
 
 from boosh.exceptions import MissingOptionError
 
@@ -30,7 +31,7 @@ class ConfigBase(object):
         for key in self.bool_keys:
             try:
                 self.__dict__[key] = parser.getboolean(section, key)
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 self.__dict__[key] = self.defaults[key]
 
         for key in self.multistring_keys:
@@ -42,8 +43,8 @@ class ConfigBase(object):
 
         try:
             self._read_config_items(section, parser)
-        except ConfigParser.NoOptionError, e:
-            raise MissingOptionError(e)
+        except configparser.NoOptionError as err:
+            raise MissingOptionError(err)
 
 
 class ConfigGroup(ConfigBase):
@@ -119,7 +120,7 @@ class Config(object):
     _config_attrs = [cls.attribute for cls in _kind_class_map.values()]
 
     def __init__(self, config_file):
-        self._parser = ConfigParser.SafeConfigParser()
+        self._parser = configparser.SafeConfigParser()
         self._parser.readfp(config_file)
 
         # Define an attribute (as en empty dict) for each kind
