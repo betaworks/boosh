@@ -85,7 +85,7 @@ def find_instance(instance_id, config_profiles):
     for profile in profiles_session.available_profiles:
         # Re-using the same session doesn't work
         session = botocore.session.get_session()
-        session.profile = profile
+        session.set_config_variable('profile', profile)
 
         # Prefer regions listed in the profile
         regions = None
@@ -102,7 +102,10 @@ def find_instance(instance_id, config_profiles):
         for region in regions:
             logger.debug("connecting to region '%s' with AWS profile '%s'...",
                          region, profile)
-            ec2 = session.create_client('ec2', region)
+            try:
+                ec2 = session.create_client('ec2', region)
+            except botocore.exceptions.PartialCredentialsError:
+                break
 
             try:
                 resp = ec2.describe_instances(InstanceIds=[instance_id])
